@@ -1,25 +1,25 @@
 # webadv_audit.py
-# Michael Ivanicki, s1321890 
+# Michael Ivanicki (s1321890), Daniel McGarry (s1317786), Dennis Vaccaro (s0984094)
 # CS 371
 # Spring 2023
 
 from selenium import webdriver
-from selenium.webdriver.common.keys import Keys 
+from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
-import time  
+import time
 import sys
 import re
 import getpass
-import requests 
+import requests
 from xhtml2pdf import pisa
 
 # Help function
 def help():
-    print("""This Python script retrieves your academic audit and prints a summary. 
+    print("""This Python script retrieves your academic audit and prints a summary.
 It can optionally save a PDF copy of your entire audit.
 
 
-Usage: python3 webadv_audit.py [--option] [student id, e.g., s1100841]	
+Usage: python3 webadv_audit.py [--option] [student id, e.g., s1100841]
    where [--option] can be:
       --help:	     Display this help information and exit
       --save-pdf: Save PDF copy of entire audit to the current folder
@@ -27,50 +27,27 @@ Usage: python3 webadv_audit.py [--option] [student id, e.g., s1100841]
 """)
     sys.exit(1)
 
-# Save function which saves the html page to a pdf using xhtml2pdf
-def save(source_html,output_file): 
-     result_file = open(output_file, "w+b")
-
-     # convert HTML to PDF
-     pisa_status = pisa.CreatePDF(
-             source_html,                # the HTML to convert
-             dest=result_file)           # file handle to recieve result
-
-     # close output file
-     result_file.close()                 # close output file
-
-     # return False on success and True on errors
-     return pisa_status.err
-
 # Checking to see if proper amount of commandline arguments were given
-if len(sys.argv) != 2:
+if (len(sys.argv) != 2 and len(sys.argv) != 3):
     help()
 
-# Checking to see if help function is being called by user 
-if re.search('-h', sys.argv[1]): 
+# Checking to see if help function is being called by user
+if re.search('-h', sys.argv[1]):
     help()
 
 # Checking to see if save function is being called by user, and remembering the option to call the function later when needed in the 'save' boolean variable
-if re.search('-s', sys.argv[1]): 
-    save = True
-else: 
-    save = False
+if re.search('-s', sys.argv[1]):
+    save_pdf = True
+else:
+    save_pdf = False
 
 # Saving the command line arguments to a variable
-if len(sys.argv) == 1:
-    userID = sys.argv[0]
-else:
-    userID = sys.argv[1]
+userID = re.search('s\d{7}', sys.argv[len(sys.argv) - 1]).group(0)
 
-# Asking user to input their password 
+# Asking user to input their password
 password = getpass.getpass(f"Enter the password for {userID}: ")
 
-# Setting up the html to pdf conversion
-source_html = ""
-output_file = "audit.pdf"
-
-
-# Setting up the webdriver 
+# Setting up the webdriver
 driver = webdriver.Chrome()
 
 driver.get('https://webadvisor.monmouth.edu')
@@ -97,13 +74,13 @@ time.sleep(2)
 enter_password.send_keys(Keys.RETURN)
 
 # Checks to see if the credentials entered were correct
-try: 
+try:
     assert 'WebAdvisor Main Menu' in driver.title
 except AssertionError:
     sys.exit("Incorrect user ID or Password. Exiting.")
 
 
-# Clicks on the student menu 
+# Clicks on the student menu
 studentBar = driver.find_element(By.CLASS_NAME,'WBST_Bars')
 studentBar.click()
 
@@ -120,11 +97,11 @@ submitButton = driver.find_element(By.NAME, 'SUBMIT2')
 submitButton.click()
 
 
-# Parsing the audit for the required information: 
-print(""" Audit Summarry: 
+# Parsing the audit for the required information:
+print(""" Audit Summarry:
 =================""")
 
-# Finding Name and ID by its XPATH 
+# Finding Name and ID by its XPATH
 student = driver.find_element(By.XPATH, '//*[@id="StudentTable"]/tbody/tr[2]/td/strong')
 print(student.text)
 
@@ -186,23 +163,23 @@ not_started = []
 
 for req in grad_requirements:
     req = req.text
-    
+
     test = re.match(in_progress_pattern, req)
     if test is not None:
         in_progress.append(test.group(0))
 
-    
+
     test2 = re.match(not_started_pattern, req)
     if test2 is not None:
         not_started.append(test2.group(0))
 
-print("Graduation Requirements In Progress: \n")
+print("Graduation Requirements In Progress: ")
 for element in in_progress:
-    print(f'{element}\n')
+    print(f'{element}')
 
-print("Graduation Requirements Not Started: \n")
+print("Graduation Requirements Not Started: ")
 for element in not_started:
-    print(f'{element}\n')
+    print(f'{element}')
 
 # Finding Credits at the 200 level in the same way as advisor and class level, but with different text
 parsed_data = driver.find_element(By.XPATH, "/html//table[@id='StudentTable']/tbody/tr[8]/td/table[6]//table[@id='ReqTable']/tbody/tr[2]/td")
@@ -219,10 +196,16 @@ credits = driver.find_element(By.XPATH, '//*[@id="SummaryTable"]/tbody/tr[4]/td[
 print(f'Total credits earned: {credits.text}')
 
 # Printing to PDF if the user inputs the option
-if save == True:
+if save_pdf == True:
     source_html = driver.page_source
     output_file = "audit.pdf"
-    save(source_html,output_file)
+    result_file = open(output_file, "w+b")
+
+    # convert HTML to PDF
+    pisa_status = pisa.CreatePDF(source_html, dest=result_file) 
+
+    # close output file
+    result_file.close()                 # close output file
 
 # Closing driver
 driver.close()
