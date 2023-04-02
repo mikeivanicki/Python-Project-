@@ -10,8 +10,7 @@ import time
 import sys
 import re
 import getpass
-import requests
-from xhtml2pdf import pisa
+import autoit
 
 # Help function
 def help():
@@ -47,7 +46,8 @@ userID = re.search('s\d{7}', sys.argv[len(sys.argv) - 1]).group(0)
 # Asking user to input their password
 password = getpass.getpass(f"Enter the password for {userID}: ")
 
-# Setting up the webdriver
+# Setting up webdriver
+
 driver = webdriver.Chrome()
 
 driver.get('https://webadvisor.monmouth.edu')
@@ -197,15 +197,18 @@ print(f'Total credits earned: {credits.text}')
 
 # Printing to PDF if the user inputs the option
 if save_pdf == True:
-    source_html = driver.page_source
-    output_file = "audit.pdf"
-    result_file = open(output_file, "w+b")
 
-    # convert HTML to PDF
-    pisa_status = pisa.CreatePDF(source_html, dest=result_file) 
+    driver.maximize_window()
+    autoit.send("^p")
+    time.sleep(5)
 
-    # close output file
-    result_file.close()                 # close output file
+    autoit.send("{Enter}")
+    time.sleep(5)
+
+    autoit.send("audit.pdf")
+    time.sleep(5)
+
+    autoit.send("{Enter}")
 
 # Closing driver
 driver.close()
